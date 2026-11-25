@@ -1,0 +1,44 @@
+[package]
+name = "pilot-launcher"
+version = "0.1.0"
+description = "PilotLauncher - 液态玻璃风格的 Minecraft 启动器"
+authors = ["PilotLauncher Contributors"]
+license = "MIT"
+edition = "2021"
+rust-version = "1.77.2"
+
+[lib]
+name = "pilot_launcher_lib"
+crate-type = ["rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+# 文件选择对话框（导入本地整合包 / 地图）。新版插件要求较新的 Rust（官方文档写明 ≥ 1.90），setup-env 安装的最新 stable 满足
+tauri-plugin-dialog = "2"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tokio = { version = "1", features = ["full"] }
+reqwest = { version = "0.12", default-features = false, features = ["rustls-tls", "json", "stream", "gzip", "http2", "charset"] }
+futures-util = "0.3"
+zip = { version = "2", default-features = false, features = ["deflate"] }
+# 解压联机组件（Terracotta 发行包为 tar.gz；tar 部分自己解析，gzip 用 flate2，zip / reqwest 已间接依赖它）
+flate2 = "1"
+sha1 = "0.10"
+sha2 = "0.10"
+md-5 = "0.10"
+hex = "0.4"
+base64 = "0.22"
+uuid = { version = "1", features = ["v4"] }
+anyhow = "1"
+
+[target.'cfg(windows)'.dependencies]
+windows-sys = { version = "0.59", features = ["Win32_Foundation", "Win32_System_SystemInformation"] }
+
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = 3
+strip = true

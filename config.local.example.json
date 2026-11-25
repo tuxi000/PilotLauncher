@@ -1,0 +1,4 @@
+{
+  "_说明": "复制本文件为 config.local.json（已在 .gitignore 中忽略），放在 pilot-launcher.exe 同目录，或启动器数据目录 .minecraft\\PilotLauncher\\ 下。开发模式下也可放在项目根目录。",
+  "curseforgeApiKey": "在此填写你的 CurseForge API Key"
+}

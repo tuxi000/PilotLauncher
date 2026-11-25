@@ -1,0 +1,335 @@
+/* ───────── 液态玻璃基础 ─────────
+ * 结构：背景半透明 + backdrop-filter(blur + saturate [+ SVG 位移折射])
+ *       ::before 指针跟随高光；::after 渐变高光描边（mask 只保留 1px 边框）
+ */
+.glass {
+  position: relative;
+  isolation: isolate;
+  border-radius: var(--radius, 20px);
+  background: linear-gradient(160deg, var(--glass-tint), transparent 60%), var(--glass-bg);
+  -webkit-backdrop-filter: blur(var(--blur)) saturate(var(--sat));
+  backdrop-filter: blur(var(--blur)) saturate(var(--sat));
+  box-shadow: var(--glass-shadow), inset 0 1px 0 0 var(--hl-top), inset 0 -1px 0 0 var(--hl-bottom);
+}
+
+/* 开启折射时：模糊后再做边缘位移，最后增强饱和度 */
+html.refract .glass[data-refract] {
+  backdrop-filter: blur(calc(var(--blur) * 0.6)) var(--refract) saturate(var(--sat));
+}
+
+.glass::before {
+  /* 指针高光：只在鼠标附近显示一个小光斑，移入淡入、移出淡出 */
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  z-index: -1;
+  background: radial-gradient(
+    circle var(--light-r, 70px) at var(--mx, -999px) var(--my, -999px),
+    rgba(255, 255, 255, var(--light-a, 0.16)),
+    rgba(255, 255, 255, calc(var(--light-a, 0.16) * 0.35)) 40%,
+    transparent 100%
+  );
+  opacity: var(--light, 0);
+  transition: opacity 0.35s ease;
+}
+html[data-theme='dark'] .glass::before {
+  --light-a: 0.09;
+}
+
+.glass::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  padding: 1px;
+  border-radius: inherit;
+  pointer-events: none;
+  background: linear-gradient(
+    140deg,
+    rgba(255, 255, 255, 0.85),
+    rgba(255, 255, 255, 0.12) 32%,
+    rgba(255, 255, 255, 0.04) 58%,
+    rgba(255, 255, 255, 0.55)
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  opacity: 0.9;
+}
+html[data-theme='dark'] .glass::after {
+  opacity: 0.45;
+}
+
+.glass-strong {
+  background: linear-gradient(160deg, var(--glass-tint), transparent 60%), var(--glass-bg-strong);
+}
+
+/* 长列表使用的轻量玻璃：不使用 backdrop-filter，避免上百个模糊层导致滚动卡顿 */
+.glass-lite {
+  border-radius: var(--radius, 18px);
+  background: linear-gradient(160deg, var(--glass-tint), transparent 70%), var(--glass-bg);
+  box-shadow: 0 4px 14px -8px rgba(20, 30, 60, 0.25), inset 0 1px 0 0 var(--hl-top),
+    inset 0 0 0 1px var(--glass-edge);
+  transition: background 0.2s ease;
+}
+.glass-lite:hover {
+  background: linear-gradient(160deg, var(--glass-tint), transparent 70%), var(--glass-bg-hover);
+}
+html[data-theme='dark'] .glass-lite {
+  box-shadow: 0 4px 14px -8px rgba(0, 0, 0, 0.5), inset 0 1px 0 0 var(--hl-top), inset 0 0 0 1px var(--glass-edge);
+}
+
+.card {
+  padding: 18px 20px;
+}
+
+/* ───────── 按钮 ───────── */
+.btn {
+  --radius: 14px;
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 36px;
+  padding: 0 16px;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  font-weight: 550;
+  white-space: nowrap;
+  color: var(--text);
+  background: var(--field-bg);
+  box-shadow: inset 0 0 0 1px var(--field-border), inset 0 1px 0 var(--hl-bottom);
+  transition: transform 0.45s var(--spring), background 0.2s ease, box-shadow 0.2s ease, opacity 0.2s;
+}
+.btn:hover {
+  background: var(--glass-bg-hover);
+  transform: translateY(-1px) scale(1.02);
+}
+.btn:active {
+  transform: scale(0.95);
+  transition-duration: 0.12s;
+}
+.btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+.btn.primary {
+  color: var(--accent-fg);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 88%, white), var(--accent));
+  box-shadow: 0 6px 18px -6px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+}
+.btn.primary:hover {
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 75%, white), var(--accent));
+}
+.btn.danger {
+  color: #fff;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--danger) 85%, white), var(--danger));
+  box-shadow: 0 6px 18px -8px var(--danger), inset 0 1px 0 rgba(255, 255, 255, 0.4);
+}
+.btn.ghost {
+  background: transparent;
+  box-shadow: none;
+}
+.btn.ghost:hover {
+  background: var(--field-bg);
+}
+.btn.sm {
+  height: 30px;
+  padding: 0 12px;
+  font-size: 13px;
+  --radius: 11px;
+}
+.btn.icon {
+  width: 36px;
+  padding: 0;
+}
+.btn.sm.icon {
+  width: 30px;
+}
+
+/* ───────── 表单 ───────── */
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.field > label,
+.field-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--text-2);
+}
+.input,
+.textarea,
+.select {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 12px;
+  border: none;
+  outline: none;
+  background: var(--field-bg);
+  box-shadow: inset 0 0 0 1px var(--field-border);
+  transition: box-shadow 0.2s ease, background 0.2s ease;
+}
+.textarea {
+  height: auto;
+  min-height: 72px;
+  padding: 8px 12px;
+  resize: vertical;
+  font-family: var(--mono);
+  font-size: 12.5px;
+}
+.input:focus,
+.textarea:focus,
+.select:focus {
+  box-shadow: inset 0 0 0 1px var(--accent), 0 0 0 4px color-mix(in srgb, var(--accent) 20%, transparent);
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--text-3);
+}
+.select option {
+  background: var(--solid-bg);
+  color: var(--text);
+}
+
+/* 去掉原生 number 输入框的上下箭头（Chromium / WebView2 的样式与玻璃风格不搭） */
+input[type='number']::-webkit-inner-spin-button,
+input[type='number']::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+input[type='number'] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+/* 滑块 */
+.slider {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 100%;
+  height: 6px;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--accent) 0 var(--pct, 50%),
+    color-mix(in srgb, var(--text) 14%, transparent) var(--pct, 50%) 100%
+  );
+  outline: none;
+}
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25), inset 0 0 0 0.5px rgba(0, 0, 0, 0.1);
+  cursor: grab;
+  transition: transform 0.4s var(--spring);
+}
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.12);
+}
+.slider:active::-webkit-slider-thumb {
+  transform: scale(1.25, 0.9);
+  cursor: grabbing;
+}
+
+/* 徽标 */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  height: 20px;
+  padding: 0 8px;
+  border-radius: 10px;
+  font-size: 11.5px;
+  font-weight: 600;
+  background: color-mix(in srgb, var(--text) 9%, transparent);
+  color: var(--text-2);
+}
+.badge.accent {
+  background: color-mix(in srgb, var(--accent) 18%, transparent);
+  color: var(--accent);
+}
+.badge.success {
+  background: color-mix(in srgb, var(--success) 20%, transparent);
+  color: color-mix(in srgb, var(--success) 70%, var(--text));
+}
+.badge.warning {
+  background: color-mix(in srgb, var(--warning) 22%, transparent);
+  color: color-mix(in srgb, var(--warning) 75%, var(--text));
+}
+.badge.danger {
+  background: color-mix(in srgb, var(--danger) 18%, transparent);
+  color: var(--danger);
+}
+
+/* 进度条 */
+.progress {
+  position: relative;
+  height: 8px;
+  border-radius: 8px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--text) 10%, transparent);
+  box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.12);
+}
+.progress > i {
+  position: absolute;
+  inset: 0 auto 0 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, var(--accent-2), var(--accent));
+  box-shadow: 0 0 12px color-mix(in srgb, var(--accent) 60%, transparent), inset 0 1px 0 rgba(255, 255, 255, 0.5);
+  transition: width 0.6s var(--spring-soft);
+}
+.progress.indeterminate > i {
+  width: 35% !important;
+  animation: indeterminate 1.4s var(--ease-out) infinite;
+}
+@keyframes indeterminate {
+  from {
+    transform: translateX(-110%);
+  }
+  to {
+    transform: translateX(310%);
+  }
+}
+
+.spinner {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: 2.5px solid color-mix(in srgb, currentColor 25%, transparent);
+  border-top-color: currentColor;
+  animation: spin 0.8s linear infinite;
+}
+
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 48px 20px;
+  color: var(--text-2);
+  text-align: center;
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  margin-bottom: 14px;
+}
+
+.divider {
+  height: 1px;
+  background: var(--divider);
+  margin: 14px 0;
+}

@@ -1,0 +1,244 @@
+/* ───────── 设计变量 ───────── */
+:root {
+  --font: 'Segoe UI Variable Text', 'Segoe UI', 'Microsoft YaHei UI', 'PingFang SC', system-ui, sans-serif;
+  --font-display: 'Segoe UI Variable Display', 'Segoe UI', 'Microsoft YaHei UI', system-ui, sans-serif;
+  --mono: 'Cascadia Mono', 'Cascadia Code', Consolas, 'Microsoft YaHei UI', monospace;
+
+  /* 弹性曲线：优先使用 linear() 弹簧近似，旧内核回退到回弹贝塞尔 */
+  --spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --spring-soft: cubic-bezier(0.22, 1.25, 0.36, 1);
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --accent: #0a84ff;
+  --accent-2: #5e5ce6;
+  --accent-fg: #ffffff;
+  --success: #30d158;
+  --warning: #ff9f0a;
+  --danger: #ff453a;
+
+  --text: #10131a;
+  --text-2: rgba(16, 19, 26, 0.64);
+  --text-3: rgba(16, 19, 26, 0.42);
+
+  --glass-bg: rgba(255, 255, 255, 0.46);
+  --glass-bg-strong: rgba(255, 255, 255, 0.7);
+  --glass-bg-hover: rgba(255, 255, 255, 0.6);
+  --glass-tint: rgba(255, 255, 255, 0.18);
+  --glass-edge: rgba(255, 255, 255, 0.55);
+  --hl-top: rgba(255, 255, 255, 0.9);
+  --hl-bottom: rgba(255, 255, 255, 0.25);
+  --glass-shadow: 0 10px 30px -8px rgba(20, 30, 60, 0.22), 0 2px 6px rgba(20, 30, 60, 0.08);
+  --blur: 22px;
+  --sat: 180%;
+
+  --sheet-bg: rgba(248, 250, 255, 0.42);
+  --solid-bg: #eef1f7;
+  --field-bg: rgba(255, 255, 255, 0.55);
+  --field-border: rgba(16, 19, 26, 0.1);
+  --divider: rgba(16, 19, 26, 0.08);
+  --scrim: rgba(10, 14, 24, 0.28);
+}
+
+@supports (transition-timing-function: linear(0, 1)) {
+  :root {
+    --spring: linear(0, 0.009, 0.035 2.1%, 0.141, 0.281 6.7%, 0.723 12.9%, 0.938 16.7%, 1.017, 1.077,
+        1.121, 1.149 24.3%, 1.159, 1.163, 1.161, 1.154 29.9%, 1.129 32.8%, 1.051 39.6%, 1.017 43.1%,
+        0.991, 0.977 51%, 0.974 53.8%, 0.975 57.1%, 0.997 69.8%, 1.003 76.9%, 1);
+  }
+}
+
+html[data-theme='dark'] {
+  --accent: #0a84ff;
+  --text: #f3f5fa;
+  --text-2: rgba(236, 240, 250, 0.66);
+  --text-3: rgba(236, 240, 250, 0.42);
+
+  --glass-bg: rgba(38, 42, 54, 0.42);
+  --glass-bg-strong: rgba(44, 48, 62, 0.72);
+  --glass-bg-hover: rgba(60, 66, 84, 0.55);
+  --glass-tint: rgba(255, 255, 255, 0.04);
+  --glass-edge: rgba(255, 255, 255, 0.14);
+  --hl-top: rgba(255, 255, 255, 0.3);
+  --hl-bottom: rgba(255, 255, 255, 0.06);
+  --glass-shadow: 0 14px 36px -10px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  --sheet-bg: rgba(18, 20, 28, 0.42);
+  --solid-bg: #15171e;
+  --field-bg: rgba(255, 255, 255, 0.07);
+  --field-border: rgba(255, 255, 255, 0.1);
+  --divider: rgba(255, 255, 255, 0.08);
+  --scrim: rgba(0, 0, 0, 0.45);
+}
+
+/* 强调色随背景配色微调（设置 → 外观 → 背景配色；html[data-palette] 由 theme.ts 设置）。
+ * 两个颜色的亮度与默认蓝 #0a84ff 相当：白字按钮的对比度 3.7（默认蓝 3.65），
+ * 作为文字放在深色底 #15171e 上的对比度 4.8（默认蓝 4.9），所以按钮与链接的可读性不变。
+ * 这两条写在深色主题之后，深浅色共用同一个强调色（与默认蓝一致）。 */
+html[data-palette='mint'] {
+  --accent: #0d9488;
+  --accent-2: #0891b2;
+}
+html[data-palette='coral'] {
+  --accent: #e05a33;
+  --accent-2: #ec6a8c;
+}
+
+/* ───────── 基础 ───────── */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+html {
+  /* 透明窗口：让 Windows 11 的 Mica / Acrylic 透出来 */
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  color-scheme: light;
+}
+html[data-theme='dark'] {
+  color-scheme: dark;
+}
+html[data-effect='none'] body {
+  background: var(--solid-bg);
+}
+body {
+  background: transparent;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+  color: inherit;
+}
+
+input,
+textarea {
+  user-select: text;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+  margin: 0;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 35%, transparent);
+}
+
+/* 细滚动条 */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-thumb {
+  background: color-mix(in srgb, var(--text) 22%, transparent);
+  border-radius: 10px;
+  border: 3px solid transparent;
+  background-clip: padding-box;
+}
+::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(in srgb, var(--text) 36%, transparent);
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-corner {
+  background: transparent;
+}
+::-webkit-scrollbar-button {
+  display: none;
+}
+
+.muted {
+  color: var(--text-2);
+}
+.faint {
+  color: var(--text-3);
+}
+.mono {
+  font-family: var(--mono);
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.spacer {
+  flex: 1;
+}
+.ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* 页面切换动画 */
+.page-enter-active {
+  transition: opacity 0.32s var(--ease-out), transform 0.55s var(--spring), filter 0.32s var(--ease-out);
+}
+.page-leave-active {
+  transition: opacity 0.16s ease, transform 0.16s ease, filter 0.16s ease;
+}
+.page-enter-from {
+  opacity: 0;
+  transform: translateY(14px) scale(0.985);
+  filter: blur(6px);
+}
+.page-leave-to {
+  opacity: 0;
+  transform: scale(0.99);
+  filter: blur(4px);
+}
+
+/* 列表进入动画 */
+.list-enter-active {
+  transition: opacity 0.3s var(--ease-out), transform 0.5s var(--spring);
+}
+.list-leave-active {
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.list-enter-from,
+.list-leave-to {
+  opacity: 0;
+  transform: translateY(10px) scale(0.97);
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+  }
+}
