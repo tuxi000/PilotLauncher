@@ -1,6 +1,6 @@
 # PilotLauncher
 
-> 一个仿 iOS 26「液态玻璃」风格的 Minecraft Java 版启动器（第二阶段：模组加载器 + 社区资源；第三阶段：Fabric API 自动安装、加载器版本列表提速、全套玻璃控件；第四阶段：原版风格图标、愚人节版本、简约背景与三套配色；联机：内置 Terracotta | 陶瓦联机）。
+> A Liquid Glass styled Minecraft launcher. 玻璃质感 UI，本体/整合包/模组/资源包/地图下载管理，内置免配置联机
 
 > **改名说明**：本项目原名 GlassLauncher，现更名为 **PilotLauncher**（程序文件 `pilot-launcher.exe`，应用标识 `dev.pilotlauncher.launcher`）。
 > 首次启动新版本时会自动把旧数据目录 `.minecraft\GlassLauncher\`（或 `%APPDATA%\dev.glasslauncher.launcher\`）改名迁移过来，设置、账户、Java 运行时和联机组件都会保留。
