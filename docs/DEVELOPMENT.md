@@ -29,6 +29,22 @@ CurseForge Key 来自仓库 Secret `CURSEFORGE_API_KEY`，构建时通过环境�
 
 发布新版本时，先把 `src-tauri/tauri.conf.json`、`src-tauri/Cargo.toml`、`package.json` 三处的版本号改成一样，再打标签推送。
 
+### 同步到 Gitee
+
+`.github/workflows/sync-gitee.yml`：在 GitHub 上正式发布（Publish）一个 Release 后，自动把 main 分支和版本标签推到 Gitee，
+再把 Release 里的 exe 上传到 Gitee 的同名发行版。也可以在 Actions 页面手动运行，填写标签补同步。
+
+第一次使用前：
+
+1. 注册 Gitee，新建一个**空的公开仓库** `PilotLauncher`（不要勾选初始化 README）。Gitee 的公开仓库需要通过审核
+2. Gitee → 设置 → 私人令牌，生成一个令牌，勾选 `projects`
+3. GitHub 仓库 → Settings → Secrets and variables → Actions：
+   - Secrets 里添加 `GITEE_TOKEN`，值是上一步的令牌
+   - Variables 里添加 `GITEE_OWNER`，值是 Gitee 个人空间地址（`gitee.com/` 后面那一段）
+   - 仓库名不是 `PilotLauncher` 时，再添加变量 `GITEE_REPO`
+
+同一个版本重复运行时，会先删掉 Gitee 上已有的发行版再重建。
+
 ## 项目结构
 
 ```

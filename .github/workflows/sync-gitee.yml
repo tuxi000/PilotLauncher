@@ -1,0 +1,123 @@
+# 把 GitHub 上正式发布的版本同步到 Gitee 发行版，方便国内用户下载。
+#
+# 触发方式：
+#   - 在 GitHub 的 Releases 页面点 Publish 正式发布一个版本（草稿不会触发）
+#   - 在 Actions 页面手动运行，填写要同步的标签（用于补同步或失败后重试）
+#
+# 需要先在 GitHub 仓库里配置：
+#   - Secret   GITEE_TOKEN ：Gitee 私人令牌（勾选 projects 权限）
+#   - Variable GITEE_OWNER ：Gitee 个人空间地址，也就是 gitee.com/ 后面那一段
+#   - Variable GITEE_REPO  ：Gitee 仓库名，可不填，默认 PilotLauncher
+#
+# 做的事情：把 main 分支和版本标签推到 Gitee，下载 GitHub Release 里的 exe，
+# 在 Gitee 上创建同名发行版并上传。同一个版本重复运行时，会先删掉 Gitee 上已有的发行版再重建。
+name: Sync to Gitee
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 要同步的版本标签，例如 v0.1.0
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-gitee
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event.release.tag_name || inputs.tag }}
+      GITEE_OWNER: ${{ vars.GITEE_OWNER }}
+      GITEE_REPO: ${{ vars.GITEE_REPO || 'PilotLauncher' }}
+      GITEE_TOKEN: ${{ secrets.GITEE_TOKEN }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check configuration
+        run: |
+          if [ -z "$GITEE_OWNER" ] || [ -z "$GITEE_TOKEN" ]; then
+            echo "::error::还没有配置仓库变量 GITEE_OWNER 或 Secret GITEE_TOKEN，见 docs/DEVELOPMENT.md"
+            exit 1
+          fi
+          echo "同步 $TAG 到 https://gitee.com/$GITEE_OWNER/$GITEE_REPO"
+
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.release.tag_name || inputs.tag }}
+          fetch-depth: 0
+
+      - name: Push code and tag to Gitee
+        run: |
+          remote="https://${GITEE_OWNER}:${GITEE_TOKEN}@gitee.com/${GITEE_OWNER}/${GITEE_REPO}.git"
+          git push --force "$remote" "refs/remotes/origin/main:refs/heads/main"
+          git push --force "$remote" "refs/tags/${TAG}:refs/tags/${TAG}"
+
+      - name: Download release files from GitHub
+        run: |
+          mkdir assets
+          gh release download "$TAG" --repo "$GITHUB_REPOSITORY" --dir assets --pattern '*.exe'
+          gh release view "$TAG" --repo "$GITHUB_REPOSITORY" --json name,body,isPrerelease > release.json
+          ls -l assets
+
+      - name: Create Gitee release and upload files
+        run: |
+          set -euo pipefail
+          base="https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}/releases"
+
+          name=$(jq -r '.name // empty' release.json)
+          [ -n "$name" ] || name="$TAG"
+          prerelease=$(jq -r '.isPrerelease' release.json)
+          {
+            jq -r '.body // ""' release.json
+            echo
+            echo "---"
+            echo "同步自 GitHub：https://github.com/${GITHUB_REPOSITORY}/releases/tag/${TAG}"
+          } > body.md
+
+          # 这个版本已经同步过的话，先删掉，保证重复运行的结果一致
+          old=$(curl -sS "$base/tags/$TAG?access_token=$GITEE_TOKEN" | jq -r '.id // empty' 2>/dev/null || true)
+          if [ -n "$old" ]; then
+            echo "删除 Gitee 上已有的发行版（id $old）"
+            curl -sS -X DELETE "$base/$old?access_token=$GITEE_TOKEN" -o /dev/null
+          fi
+
+          resp=$(curl -sS -X POST "$base" \
+            --data-urlencode "access_token=$GITEE_TOKEN" \
+            --data-urlencode "tag_name=$TAG" \
+            --data-urlencode "name=$name" \
+            --data-urlencode "body@body.md" \
+            --data-urlencode "prerelease=$prerelease" \
+            --data-urlencode "target_commitish=main")
+          id=$(echo "$resp" | jq -r '.id // empty' 2>/dev/null || true)
+          if [ -z "$id" ]; then
+            echo "::error::创建 Gitee 发行版失败：$resp"
+            exit 1
+          fi
+          echo "已创建 Gitee 发行版（id $id）"
+
+          for f in assets/*; do
+            ok=0
+            for i in 1 2 3; do
+              if out=$(curl -sS --fail-with-body -X POST "$base/$id/attach_files" \
+                  -F "access_token=$GITEE_TOKEN" -F "file=@$f"); then
+                echo "$out" | jq -r '"已上传：" + .name + "  " + .browser_download_url'
+                ok=1
+                break
+              fi
+              echo "上传 $f 失败（第 $i 次）：$out"
+              sleep 10
+            done
+            if [ "$ok" != 1 ]; then
+              echo "::error::上传 $f 失败"
+              exit 1
+            fi
+          done
+
+          echo "完成：https://gitee.com/${GITEE_OWNER}/${GITEE_REPO}/releases/tag/${TAG}"
