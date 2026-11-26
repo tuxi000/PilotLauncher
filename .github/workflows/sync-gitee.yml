@@ -45,19 +45,39 @@ jobs:
             echo "::error::还没有配置仓库变量 GITEE_OWNER 或 Secret GITEE_TOKEN，见 docs/DEVELOPMENT.md"
             exit 1
           fi
+          # 先用令牌查一下 Gitee 账户，出错时给出更明确的提示
+          me=$(curl -sS -G "https://gitee.com/api/v5/user" --data-urlencode "access_token=$GITEE_TOKEN")
+          login=$(echo "$me" | jq -r '.login // empty' 2>/dev/null || true)
+          if [ -z "$login" ]; then
+            echo "::error::GITEE_TOKEN 无效或已过期，请在 Gitee 重新生成私人令牌（勾选 projects）后更新 Secret。Gitee 返回：$me"
+            exit 1
+          fi
+          echo "令牌对应的 Gitee 用户：$login"
+          if [ "$login" != "$GITEE_OWNER" ]; then
+            echo "::warning::令牌属于 $login，但 GITEE_OWNER 是 $GITEE_OWNER。如果仓库在你自己的空间下，请把 GITEE_OWNER 改成 $login"
+          fi
+          repo=$(curl -sS -G "https://gitee.com/api/v5/repos/${GITEE_OWNER}/${GITEE_REPO}" --data-urlencode "access_token=$GITEE_TOKEN")
+          if [ -z "$(echo "$repo" | jq -r '.id // empty' 2>/dev/null || true)" ]; then
+            echo "::error::找不到 Gitee 仓库 ${GITEE_OWNER}/${GITEE_REPO}，请确认仓库已创建、名字一致。Gitee 返回：$repo"
+            exit 1
+          fi
           echo "同步 $TAG 到 https://gitee.com/$GITEE_OWNER/$GITEE_REPO"
 
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           ref: ${{ github.event.release.tag_name || inputs.tag }}
           fetch-depth: 0
 
       - name: Push code and tag to Gitee
         run: |
-          remote="https://${GITEE_OWNER}:${GITEE_TOKEN}@gitee.com/${GITEE_OWNER}/${GITEE_REPO}.git"
-          git push --force "$remote" "refs/remotes/origin/main:refs/heads/main"
-          git push --force "$remote" "refs/tags/${TAG}:refs/tags/${TAG}"
+          set -euo pipefail
+          auth=$(printf '%s:%s' "$GITEE_OWNER" "$GITEE_TOKEN" | base64 -w0)
+          echo "::add-mask::$auth"
+          target="https://gitee.com/${GITEE_OWNER}/${GITEE_REPO}.git"
+          header="http.https://gitee.com/.extraheader=Authorization: Basic $auth"
+          git -c "$header" push --force "$target" "refs/remotes/origin/main:refs/heads/main"
+          git -c "$header" push --force "$target" "refs/tags/${TAG}:refs/tags/${TAG}"
 
       - name: Download release files from GitHub
         run: |
@@ -82,10 +102,10 @@ jobs:
           } > body.md
 
           # 这个版本已经同步过的话，先删掉，保证重复运行的结果一致
-          old=$(curl -sS "$base/tags/$TAG?access_token=$GITEE_TOKEN" | jq -r '.id // empty' 2>/dev/null || true)
+          old=$(curl -sS -G "$base/tags/$TAG" --data-urlencode "access_token=$GITEE_TOKEN" | jq -r '.id // empty' 2>/dev/null || true)
           if [ -n "$old" ]; then
             echo "删除 Gitee 上已有的发行版（id $old）"
-            curl -sS -X DELETE "$base/$old?access_token=$GITEE_TOKEN" -o /dev/null
+            curl -sS -X DELETE -G "$base/$old" --data-urlencode "access_token=$GITEE_TOKEN" -o /dev/null
           fi
 
           resp=$(curl -sS -X POST "$base" \
