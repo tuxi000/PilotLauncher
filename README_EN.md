@@ -2,7 +2,7 @@
 
 # PilotLauncher
 
-A Liquid Glass styled launcher for Minecraft: Java Edition
+A clean, modern launcher for Minecraft: Java Edition
 
 [简体中文](README.md) | English
 
@@ -17,7 +17,7 @@ A Liquid Glass styled launcher for Minecraft: Java Edition
 
 ## About
 
-PilotLauncher is a Minecraft launcher built with Tauri (Rust + Vue). Its look is inspired by the Liquid Glass design of iOS 26, and its layout by LauncherX.
+PilotLauncher is a Minecraft launcher built with Tauri (Rust + Vue), with a clean interface and a translucent, glassy look.
 
 Installing the game, setting up Java, adding a mod loader, finding mods and modpacks, playing with friends: you can do all of it from inside the launcher, without hunting for downloads or copying files around by hand.
 
@@ -55,7 +55,7 @@ Windows only for now.
 - Invite codes work across PilotLauncher, HMCL and PCL CE
 
 **Interface**
-- Liquid Glass effects, light and dark themes that follow the system
+- Translucent glass-style interface, light and dark themes that follow the system
 - Three background color schemes, or use your own image
 - A live view of your PC's memory usage next to the game memory setting
 - Live game log, with hints for common crash causes
@@ -68,7 +68,7 @@ Windows only for now.
 | Source | Notes |
 | --- | --- |
 | [GitHub Releases](https://github.com/tuxi000/PilotLauncher/releases/latest) | Official release page |
-| [Gitee Releases](https://gitee.com/tuxi000/pilot-launcher/releases) | Mirror for mainland China, synced automatically on every release |
+| [Gitee Releases](https://gitee.com/tuxi000/pilot-launcher/releases) | Mirror for mainland China |
 
 Each release has two files:
 

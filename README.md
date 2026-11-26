@@ -2,7 +2,7 @@
 
 # PilotLauncher
 
-一个液态玻璃风格的 Minecraft Java 版启动器
+一个简洁、现代的 Minecraft Java 版启动器
 
 简体中文 | [English](README_EN.md)
 
@@ -17,7 +17,7 @@
 
 ## 简介
 
-PilotLauncher 是一个用 Tauri（Rust + Vue）写的 Minecraft 启动器，界面参考了 iOS 26 的液态玻璃风格，布局参考 LauncherX。
+PilotLauncher 是一个用 Tauri（Rust + Vue）写的 Minecraft 启动器，界面简洁，带有半透明的玻璃质感。
 
 装游戏、配 Java、装模组加载器、找模组和整合包、和朋友联机，这些常用的事情都能在启动器里直接完成，不用另外去网站下载、手动放文件。
 
@@ -53,7 +53,7 @@ PilotLauncher 是一个用 Tauri（Rust + Vue）写的 Minecraft 启动器，界
 - 邀请码和 HMCL、PCL CE 的陶瓦联机通用
 
 **界面**
-- 液态玻璃效果，深色、浅色跟随系统
+- 半透明的玻璃质感界面，深色、浅色跟随系统
 - 三套背景配色可选，也可以换成自己的图片
 - 游戏内存设置旁边实时显示整台电脑的内存占用
 - 游戏日志实时查看，崩溃时给出常见原因的提示
@@ -66,7 +66,7 @@ PilotLauncher 是一个用 Tauri（Rust + Vue）写的 Minecraft 启动器，界
 | 下载渠道 | 说明 |
 | --- | --- |
 | [GitHub Releases](https://github.com/tuxi000/PilotLauncher/releases/latest) | 官方发布页 |
-| [Gitee 发行版](https://gitee.com/tuxi000/pilot-launcher/releases) | 国内镜像，访问 GitHub 慢时用这个，每次发布自动同步 |
+| [Gitee 发行版](https://gitee.com/tuxi000/pilot-launcher/releases) | 国内镜像，访问 GitHub 慢时用这个 |
 
 每个版本里有两个文件：
 
