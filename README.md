@@ -63,7 +63,12 @@ PilotLauncher 是一个用 Tauri（Rust + Vue）写的 Minecraft 启动器，界
 
 ## 下载
 
-到 [Releases](https://github.com/tuxi000/PilotLauncher/releases) 下载：
+| 下载渠道 | 说明 |
+| --- | --- |
+| [GitHub Releases](https://github.com/tuxi000/PilotLauncher/releases/latest) | 官方发布页 |
+| [Gitee 发行版](https://gitee.com/tuxi000/pilot-launcher/releases) | 国内镜像，访问 GitHub 慢时用这个，每次发布自动同步 |
+
+每个版本里有两个文件：
 
 - `pilot-launcher.exe`：免安装版，放进一个空文件夹直接运行
 - `PilotLauncher_x.y.z_x64-setup.exe`：安装版
@@ -102,6 +107,10 @@ PilotLauncher 是一个用 Tauri（Rust + Vue）写的 Minecraft 启动器，界
 **很老的版本（1.5 以前）启动不了**
 
 如果游戏目录或 Windows 用户名里有中文，部分远古版本加载不了本地库文件。在设置里把游戏目录改到纯英文路径再试。
+
+**GitHub 打不开或下载很慢**
+
+改用 [Gitee 发行版](https://gitee.com/tuxi000/pilot-launcher/releases) 下载，文件和 GitHub 上的一样。
 
 **数据存在哪里**
 

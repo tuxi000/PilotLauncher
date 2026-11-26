@@ -32,6 +32,7 @@ concurrency:
 jobs:
   sync:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     env:
       TAG: ${{ github.event.release.tag_name || inputs.tag }}
       GITEE_OWNER: ${{ vars.GITEE_OWNER }}
@@ -125,7 +126,9 @@ jobs:
           for f in assets/*; do
             ok=0
             for i in 1 2 3; do
-              if out=$(curl -sS --fail-with-body -X POST "$base/$id/attach_files" \
+              echo "正在上传 $f（$(du -h "$f" | cut -f1)），第 $i 次"
+              if out=$(curl -sS --fail-with-body --connect-timeout 30 --max-time 600 \
+                  -X POST "$base/$id/attach_files" \
                   -F "access_token=$GITEE_TOKEN" -F "file=@$f"); then
                 echo "$out" | jq -r '"已上传：" + .name + "  " + .browser_download_url'
                 ok=1

@@ -65,7 +65,12 @@ Windows only for now.
 
 ## Download
 
-Get it from [Releases](https://github.com/tuxi000/PilotLauncher/releases):
+| Source | Notes |
+| --- | --- |
+| [GitHub Releases](https://github.com/tuxi000/PilotLauncher/releases/latest) | Official release page |
+| [Gitee Releases](https://gitee.com/tuxi000/pilot-launcher/releases) | Mirror for mainland China, synced automatically on every release |
+
+Each release has two files:
 
 - `pilot-launcher.exe`: portable, put it in an empty folder and run it
 - `PilotLauncher_x.y.z_x64-setup.exe`: installer
