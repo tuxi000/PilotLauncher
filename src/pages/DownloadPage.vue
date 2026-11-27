@@ -206,10 +206,10 @@ const tabs = computed<{ value: DownloadTab; label: string }[]>(() => [
         <button class="btn sm" @click="load(true)">重试</button>
       </div>
 
-      <div class="list">
+      <div class="list stagger">
         <div v-if="loading && !manifest" class="empty"><span class="spinner" />正在获取版本列表…</div>
         <div v-else-if="manifest && versions.length === 0 && offline.length === 0" class="empty">没有匹配的版本</div>
-        <div v-for="v in versions" :key="v.id" class="ver glass-lite">
+        <div v-for="v in versions" :key="v.id" class="ver glass-lite lift">
           <InstanceIcon :icon="versionIcon(typeOf(v))" :size="40" />
           <div class="ver-info">
             <div class="ver-id">
@@ -258,7 +258,7 @@ const tabs = computed<{ value: DownloadTab; label: string }[]>(() => [
           暂无任务
         </div>
         <TransitionGroup name="list">
-          <TaskCard v-for="t in taskList" :key="t.id" :task="t" />
+          <TaskCard v-for="(t, idx) in taskList" :key="t.id" :task="t" :style="{ '--i': idx }" />
         </TransitionGroup>
       </div>
     </div>

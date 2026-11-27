@@ -2,5 +2,6 @@
 
 pub mod authlib;
 pub mod offline;
+pub mod skin;
 pub mod store;
 pub mod yggdrasil;

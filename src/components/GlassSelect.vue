@@ -269,7 +269,7 @@ function toneOf(t: { text: string; tone?: string }) {
     v-bind="$attrs"
     type="button"
     class="gs"
-    :class="[size, { open, empty: !selected }]"
+    :class="[size, { open, 'is-placeholder': !selected }]"
     :disabled="disabled"
     :title="title || selected?.label || ''"
     aria-haspopup="listbox"
@@ -346,8 +346,10 @@ function toneOf(t: { text: string; tone?: string }) {
 
 <style scoped>
 .gs {
+  /* 注意：类名不能用 empty——glass.css 里的全局 .empty（空状态，纵向排列 + 48px 内边距）会把占位文字和箭头上下堆叠 */
   position: relative;
   display: inline-flex;
+  flex-direction: row;
   align-items: center;
   gap: 8px;
   width: 100%;
@@ -386,15 +388,20 @@ function toneOf(t: { text: string; tone?: string }) {
   border-radius: 10px;
   gap: 6px;
 }
-.gs.empty .gs-label {
+.gs.is-placeholder .gs-label {
   color: var(--text-3);
 }
 .gs-label {
   flex: 1;
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.25;
 }
 .gs-chev {
   flex: none;
+  margin-left: auto;
   color: var(--text-3);
   transition: transform 0.45s var(--spring);
 }

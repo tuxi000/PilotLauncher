@@ -1,9 +1,9 @@
 <script setup lang="ts">
-// 左侧窄图标导航（LauncherX 式），玻璃指示器以弹簧动画在项目间滑动
+// 左侧窄图标导航（LauncherX 式），玻璃指示块以弹簧动画在项目间滑动（移动时轻微拉伸）
 import { computed } from 'vue'
 import Icon from './Icon.vue'
 import Avatar from './Avatar.vue'
-import { store, currentAccount, runningTaskCount, type Page } from '../store'
+import { store, currentAccount, openAccountPanel, runningTaskCount, type Page } from '../store'
 import { roomSummary } from '../terracotta'
 
 const items: { page: Page; icon: string; label: string }[] = [
@@ -19,12 +19,23 @@ const room = computed(() => roomSummary(store.terracotta?.room))
 
 const ITEM = 62
 const index = computed(() => Math.max(0, items.findIndex((i) => i.page === store.page)))
+
+function openPanel(e: MouseEvent) {
+  if (store.accountPanel) {
+    store.accountPanel = false
+    return
+  }
+  openAccountPanel(e.currentTarget as Element | null)
+}
 </script>
 
 <template>
   <nav class="sidenav">
     <div class="rail glass" v-refract="{ scale: 28 }" v-light>
-      <div class="indicator" :style="{ transform: `translateY(${index * ITEM}px)` }" />
+      <div class="indicator" :style="{ transform: `translateY(${index * ITEM}px)` }">
+        <!-- 每次切换重新挂载，播放一次“拉伸 → 回弹” -->
+        <span :key="index" class="blob" />
+      </div>
       <button
         v-for="item in items"
         :key="item.page"
@@ -47,8 +58,14 @@ const index = computed(() => Math.max(0, items.findIndex((i) => i.page === store
       </button>
     </div>
     <div class="spacer" />
-    <button class="account glass" v-light title="账户管理" @click="store.accountDialog = true">
-      <Avatar :name="currentAccount?.name ?? '?'" :seed="currentAccount?.uuid ?? ''" :size="38" />
+    <button
+      class="account glass"
+      :class="{ open: store.accountPanel }"
+      v-light
+      :title="currentAccount ? `${currentAccount.name}（账户）` : '添加账户'"
+      @click="openPanel"
+    >
+      <Avatar :name="currentAccount?.name ?? '?'" :seed="currentAccount?.uuid ?? ''" :account="currentAccount" :size="38" />
     </button>
   </nav>
 </template>
@@ -78,10 +95,23 @@ const index = computed(() => Math.max(0, items.findIndex((i) => i.page === store
   width: 56px;
   height: 56px;
   margin-top: 3px;
+  transition: transform 0.6s var(--spring);
+}
+.blob {
+  position: absolute;
+  inset: 0;
   border-radius: 18px;
   background: var(--glass-bg-strong);
   box-shadow: 0 6px 16px -6px rgba(0, 0, 0, 0.28), inset 0 1px 0 var(--hl-top), inset 0 0 0 1px var(--glass-edge);
-  transition: transform 0.6s var(--spring);
+  animation: nav-stretch 0.6s var(--spring) both;
+}
+@keyframes nav-stretch {
+  0% {
+    transform: scale(0.92, 1.16);
+  }
+  100% {
+    transform: none;
+  }
 }
 .item {
   position: relative;
@@ -112,6 +142,23 @@ const index = computed(() => Math.max(0, items.findIndex((i) => i.page === store
 }
 .ico {
   position: relative;
+  transition: transform 0.45s var(--spring);
+}
+/* 图标悬停时轻轻上浮、侧一点 */
+.item:hover .ico {
+  transform: translateY(-2px) rotate(-6deg);
+}
+/* 选中时图标弹一下 */
+.item.active .ico {
+  animation: nav-pop 0.55s var(--spring);
+}
+@keyframes nav-pop {
+  0% {
+    transform: scale(0.7);
+  }
+  100% {
+    transform: none;
+  }
 }
 .dot {
   position: absolute;
@@ -127,6 +174,7 @@ const index = computed(() => Math.max(0, items.findIndex((i) => i.page === store
   color: #fff;
   background: var(--danger);
   box-shadow: 0 2px 6px rgba(255, 69, 58, 0.5);
+  animation: nav-pop 0.5s var(--spring);
 }
 .live {
   position: absolute;
@@ -155,12 +203,21 @@ const index = computed(() => Math.max(0, items.findIndex((i) => i.page === store
   display: grid;
   place-items: center;
   cursor: pointer;
-  transition: transform 0.45s var(--spring);
+  transition: transform 0.45s var(--spring), box-shadow 0.25s ease;
 }
 .account:hover {
   transform: scale(1.08);
 }
 .account:active {
   transform: scale(0.92);
+}
+.account.open {
+  box-shadow: var(--glass-shadow), 0 0 0 2px var(--accent), 0 0 18px -4px var(--accent);
+}
+.account :deep(.avatar) {
+  transition: transform 0.45s var(--spring);
+}
+.account:hover :deep(.avatar) {
+  transform: rotate(-4deg);
 }
 </style>

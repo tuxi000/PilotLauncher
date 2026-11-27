@@ -159,12 +159,13 @@ async function saveEdit() {
         <Icon name="cube" :size="40" />
         <div>还没有实例。前往“下载”页选择一个版本安装。</div>
       </div>
-      <TransitionGroup name="list" tag="div" class="grid">
+      <TransitionGroup name="list" tag="div" class="grid stagger">
         <article
-          v-for="i in list"
+          v-for="(i, idx) in list"
           :key="i.name"
           class="inst glass"
           :class="{ current: currentInstance?.name === i.name }"
+          :style="{ '--i': idx }"
           v-light
         >
           <div class="inst-top">

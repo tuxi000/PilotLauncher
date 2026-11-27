@@ -1,4 +1,5 @@
 <script setup lang="ts">
+// 提示条：弹簧弹入，图标轻轻弹出；多条提示之间的位置变化也用弹簧过渡
 import Icon from './Icon.vue'
 import { store } from '../store'
 
@@ -9,7 +10,7 @@ const icons = { info: 'info', success: 'check', error: 'alert' } as const
   <div class="toasts">
     <TransitionGroup name="toast">
       <div v-for="t in store.toasts" :key="t.id" class="toast glass glass-strong" :class="t.kind">
-        <Icon :name="icons[t.kind]" :size="18" />
+        <span class="t-ico"><Icon :name="icons[t.kind]" :size="18" /></span>
         <span class="text">{{ t.text }}</span>
       </div>
     </TransitionGroup>
@@ -44,6 +45,11 @@ const icons = { info: 'info', success: 'check', error: 'alert' } as const
   word-break: break-word;
   user-select: text;
 }
+.t-ico {
+  display: grid;
+  place-items: center;
+  animation: pop-in 0.55s var(--spring) 0.08s both;
+}
 .toast.success :deep(.icon) {
   color: var(--success);
 }
@@ -54,17 +60,36 @@ const icons = { info: 'info', success: 'check', error: 'alert' } as const
   color: var(--accent);
 }
 .toast-enter-active {
-  transition: transform 0.6s var(--spring), opacity 0.25s ease;
+  transition: transform 0.6s var(--spring), opacity 0.22s ease;
 }
 .toast-leave-active {
-  transition: transform 0.25s ease, opacity 0.25s ease;
+  transition: transform 0.28s var(--ease-out), opacity 0.22s ease;
+}
+.toast-move {
+  transition: transform 0.5s var(--spring);
 }
 .toast-enter-from {
   transform: translateY(24px) scale(0.8);
   opacity: 0;
 }
 .toast-leave-to {
-  transform: scale(0.9);
+  transform: translateY(8px) scale(0.9);
   opacity: 0;
+}
+/* 出错时轻轻左右晃一下 */
+.toast.error .t-ico {
+  animation: pop-in 0.55s var(--spring) 0.08s both, nudge 0.5s var(--ease-out) 0.45s;
+}
+@keyframes nudge {
+  0%,
+  100% {
+    transform: none;
+  }
+  30% {
+    transform: translateX(-3px) rotate(-8deg);
+  }
+  65% {
+    transform: translateX(2px) rotate(5deg);
+  }
 }
 </style>

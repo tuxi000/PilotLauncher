@@ -1,6 +1,6 @@
 [package]
 name = "pilot-launcher"
-version = "0.1.0"
+version = "0.2.0"
 description = "PilotLauncher - 液态玻璃风格的 Minecraft 启动器"
 authors = ["PilotLauncher Contributors"]
 license = "MIT"

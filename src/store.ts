@@ -20,6 +20,8 @@ import {
   type TerracottaView,
 } from './api'
 import { applyEffect, applyPalette, applyRefraction, applyTheme } from './theme'
+import { applyMotion, recentPointer } from './motion'
+import { loadSkins } from './skin'
 
 export type Page = 'home' | 'download' | 'instances' | 'multiplayer' | 'settings'
 export type DownloadTab = 'versions' | 'tasks' | ResourceKind
@@ -61,7 +63,10 @@ export const store = reactive({
   games: {} as Record<string, GameStateEvent>,
   logs: {} as Record<string, string[]>,
   toasts: [] as Toast[],
-  accountDialog: false,
+  /** 账户面板（点侧边栏底部的头像弹出的玻璃面板，见 AccountPanel.vue） */
+  accountPanel: false,
+  /** 账户面板弹出的起点（屏幕坐标），面板从这里缩放展开 */
+  accountPanelOrigin: null as { x: number; y: number } | null,
   logInstance: null as string | null,
   crash: null as { instance: string; info: CrashInfo } | null,
   /** 自定义背景图的 data URL；为空时显示内置的 AmbientBackground（配色见 settings.backgroundPalette） */
@@ -124,6 +129,49 @@ export async function refreshAccounts() {
     const list = await api.listAccounts()
     store.accounts = list.accounts
     if (store.settings) store.settings.selectedAccount = list.selected
+    loadSkins(list.accounts)
+  } catch (e) {
+    toastError(e)
+  }
+}
+
+/**
+ * 打开账户面板。from：触发的元素（面板从它的中心弹出）；不传时用最近一次点击的位置
+ */
+export function openAccountPanel(from?: Element | null) {
+  if (from) {
+    const r = from.getBoundingClientRect()
+    store.accountPanelOrigin = { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+  } else {
+    store.accountPanelOrigin = recentPointer()
+  }
+  store.accountPanel = true
+}
+
+export function closeAccountPanel() {
+  store.accountPanel = false
+}
+
+/** 切换当前账户 */
+export async function selectAccount(id: string) {
+  if (store.settings?.selectedAccount === id) return
+  const before = store.settings?.selectedAccount ?? null
+  // 先在界面上切过去，失败再回滚
+  if (store.settings) store.settings.selectedAccount = id
+  try {
+    store.settings = await api.selectAccount(id)
+  } catch (e) {
+    if (store.settings) store.settings.selectedAccount = before
+    toastError(e)
+  }
+}
+
+export async function removeAccount(id: string) {
+  try {
+    const list = await api.removeAccount(id)
+    store.accounts = list.accounts
+    if (store.settings) store.settings.selectedAccount = list.selected
+    loadSkins(list.accounts)
   } catch (e) {
     toastError(e)
   }
@@ -147,6 +195,7 @@ function applyAppearance(s: Settings) {
   applyEffect(s.windowEffect)
   applyRefraction(s.glassRefraction)
   applyPalette(s.backgroundPalette)
+  applyMotion(s.uiAnimation ?? true)
 }
 
 /** 合并保存设置（失败时回滚） */

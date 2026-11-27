@@ -4,6 +4,7 @@
 #![allow(dead_code)]
 
 mod auth;
+mod cleanup;
 mod commands;
 mod community;
 mod download;
@@ -63,6 +64,9 @@ pub fn run() {
             commands::add_yggdrasil_account,
             commands::remove_account,
             commands::select_account,
+            commands::get_account_skin,
+            commands::scan_cleanup,
+            commands::run_cleanup,
             commands::list_java,
             commands::inspect_java,
             commands::launch_game,

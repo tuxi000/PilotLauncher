@@ -3,7 +3,7 @@ import { computed, onMounted, type Component } from 'vue'
 import TitleBar from './components/TitleBar.vue'
 import SideNav from './components/SideNav.vue'
 import ToastHost from './components/ToastHost.vue'
-import AccountDialog from './components/AccountDialog.vue'
+import AccountPanel from './components/AccountPanel.vue'
 import LogDrawer from './components/LogDrawer.vue'
 import CrashDialog from './components/CrashDialog.vue'
 import InstanceDetail from './components/InstanceDetail.vue'
@@ -55,7 +55,7 @@ onMounted(init)
         </div>
       </main>
     </div>
-    <AccountDialog />
+    <AccountPanel />
     <LogDrawer />
     <CrashDialog />
     <InstanceDetail />

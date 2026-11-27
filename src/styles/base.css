@@ -197,35 +197,113 @@ h4 {
   white-space: nowrap;
 }
 
-/* 页面切换动画 */
+/* ───────── 动效 ─────────
+ * 统一使用上面的 --spring / --spring-soft / --ease-out；只动 transform 和 opacity（WebView2 下走合成层，不触发重排）。
+ * 设置 → 外观 → 界面动画 关闭时 <html> 带 .no-motion，系统开启“减少动画”时同样处理，见文件末尾。
+ */
+
+/* 页面切换：淡入 + 轻微上移与缩放 */
 .page-enter-active {
-  transition: opacity 0.32s var(--ease-out), transform 0.55s var(--spring), filter 0.32s var(--ease-out);
+  transition: opacity 0.3s var(--ease-out), transform 0.55s var(--spring);
 }
 .page-leave-active {
-  transition: opacity 0.16s ease, transform 0.16s ease, filter 0.16s ease;
+  transition: opacity 0.14s ease, transform 0.14s ease;
 }
 .page-enter-from {
   opacity: 0;
-  transform: translateY(14px) scale(0.985);
-  filter: blur(6px);
+  transform: translateY(16px) scale(0.985);
 }
 .page-leave-to {
   opacity: 0;
   transform: scale(0.99);
-  filter: blur(4px);
 }
 
-/* 列表进入动画 */
+/* 页面进入时，.stagger 容器里的前几个子元素错开入场（--i 可手动指定序号） */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.985);
+  }
+}
+.stagger > :nth-child(2) {
+  --i: 1;
+}
+.stagger > :nth-child(3) {
+  --i: 2;
+}
+.stagger > :nth-child(4) {
+  --i: 3;
+}
+.stagger > :nth-child(5) {
+  --i: 4;
+}
+.stagger > :nth-child(6) {
+  --i: 5;
+}
+.stagger > :nth-child(n + 7) {
+  --i: 6;
+}
+.page-enter-active .stagger > :nth-child(-n + 12) {
+  animation: rise-in 0.36s var(--ease-out) both;
+  animation-delay: calc(min(var(--i, 0), 6) * 30ms);
+}
+
+/* 列表增删（TransitionGroup name="list"）：进入时按 --i 错开，重新排序时弹簧移动 */
 .list-enter-active {
   transition: opacity 0.3s var(--ease-out), transform 0.5s var(--spring);
+  transition-delay: calc(min(var(--i, 0), 10) * 26ms);
 }
 .list-leave-active {
   transition: opacity 0.2s ease, transform 0.2s ease;
+}
+.list-move {
+  transition: transform 0.5s var(--spring);
 }
 .list-enter-from,
 .list-leave-to {
   opacity: 0;
   transform: translateY(10px) scale(0.97);
+}
+
+/* 文字切换（Transition name="swap" mode="out-in"） */
+.swap-enter-active {
+  transition: opacity 0.22s ease, transform 0.45s var(--spring);
+}
+.swap-leave-active {
+  transition: opacity 0.12s ease, transform 0.12s ease;
+}
+.swap-enter-from {
+  opacity: 0;
+  transform: translateY(8px);
+}
+.swap-leave-to {
+  opacity: 0;
+  transform: translateY(-6px);
+}
+
+/* 展开 / 收起的面板（Transition name="expand"） */
+.expand-enter-active {
+  transition: opacity 0.25s ease, transform 0.5s var(--spring);
+}
+.expand-leave-active {
+  transition: opacity 0.15s ease, transform 0.15s ease;
+}
+.expand-enter-from,
+.expand-leave-to {
+  opacity: 0;
+  transform: translateY(-6px) scale(0.98);
+}
+
+/* 小元素弹出（勾号、徽标） */
+@keyframes pop-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3) rotate(-25deg);
+  }
+  100% {
+    opacity: 1;
+    transform: none;
+  }
 }
 
 @keyframes spin {
@@ -234,11 +312,49 @@ h4 {
   }
 }
 
+/* ───────── 关闭动画 ─────────
+ * 界面动画关闭：所有过渡和动画几乎立即完成（Vue 的 Transition 仍能正常结束）。
+ * 内置背景的流动由“背景动画”单独控制，不受影响；加载指示（转圈、不确定进度条、启动按钮的进度环）保留。 */
+html.no-motion body *:not(.ambient-host *),
+html.no-motion body *:not(.ambient-host *)::before,
+html.no-motion body *:not(.ambient-host *)::after {
+  transition-duration: 0.01ms !important;
+  transition-delay: 0s !important;
+  animation-duration: 0.01ms !important;
+  animation-delay: 0s !important;
+  animation-iteration-count: 1 !important;
+}
+html.no-motion body .spinner.spinner {
+  animation-duration: 0.8s !important;
+  animation-iteration-count: infinite !important;
+}
+html.no-motion body .progress.indeterminate.indeterminate > i {
+  animation-duration: 1.4s !important;
+  animation-iteration-count: infinite !important;
+}
+html.no-motion body .keep-spin.keep-spin {
+  animation-duration: 1s !important;
+  animation-iteration-count: infinite !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
   *::after {
     transition-duration: 0.01ms !important;
     animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+  html body .spinner.spinner {
+    animation-duration: 0.8s !important;
+    animation-iteration-count: infinite !important;
+  }
+  html body .progress.indeterminate.indeterminate > i {
+    animation-duration: 1.4s !important;
+    animation-iteration-count: infinite !important;
+  }
+  html body .keep-spin.keep-spin {
+    animation-duration: 1s !important;
+    animation-iteration-count: infinite !important;
   }
 }

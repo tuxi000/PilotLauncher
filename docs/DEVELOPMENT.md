@@ -5,7 +5,7 @@
 ## 技术栈
 
 - 后端：Rust + Tauri 2（tokio、reqwest + rustls、serde、zip、flate2）
-- 前端：Vue 3 + TypeScript + Vite
+- 前端：Vue 3 + TypeScript + Vite，3D 皮肤预览用 skinview3d（three.js）
 - 平台：Windows x64，界面由 WebView2 渲染
 
 ## 构建
@@ -53,22 +53,26 @@ CurseForge Key 来自仓库 Secret `CURSEFORGE_API_KEY`，构建时通过环境�
 │  ├─ api.ts                后端命令与事件的类型定义
 │  ├─ store.ts              全局状态、事件监听
 │  ├─ theme.ts              主题、窗口材质、背景配色
+│  ├─ motion.ts             界面动画开关、最近一次点击的位置（弹窗从这里弹出）
+│  ├─ skin.ts               默认皮肤规则、外置皮肤缓存、皮肤头像
 │  ├─ instanceIcons.ts      图标与自动图标规则
 │  ├─ aprilFools.ts         愚人节版本识别（与后端一致）
 │  ├─ loaderVersions.ts     加载器版本列表的缓存与预取
 │  ├─ terracotta.ts         联机状态文案、邀请码校验
 │  ├─ glass/refract.ts      液态玻璃的折射与高光指令
+│  ├─ assets/               图标、默认皮肤贴图
 │  ├─ styles/               全局样式和玻璃组件样式
-│  ├─ components/           通用组件（GlassSelect、GlassDialog、LoaderPicker 等）
+│  ├─ components/           通用组件（GlassSelect、GlassDialog、AccountPanel、SkinViewer3D 等）
 │  └─ pages/                首页、下载、实例、联机、设置
 └─ src-tauri/src/           后端
    ├─ commands.rs           所有 Tauri 命令
    ├─ state.rs / paths.rs / settings.rs
    ├─ tasks.rs              后台任务与进度事件
+   ├─ cleanup.rs            清理游戏垃圾（扫描与删除）
    ├─ download/             下载器、下载源替换规则
    ├─ minecraft/            版本清单、版本 JSON、依赖库、资源、安装、愚人节版本
    ├─ java/                 Java 运行时下载、本机 Java 扫描
-   ├─ auth/                 离线 UUID、Yggdrasil、authlib-injector
+   ├─ auth/                 离线 UUID、Yggdrasil、authlib-injector、皮肤
    ├─ instance.rs           实例管理
    ├─ launch/               启动参数、natives、进程与日志、崩溃分析
    ├─ modloader/            Fabric / Quilt、Forge / NeoForge、OptiFine、版本列表缓存
@@ -90,7 +94,7 @@ CurseForge Key 来自仓库 Secret `CURSEFORGE_API_KEY`，构建时通过环境�
    │  ├─ runtime\<component>\  Java 运行时
    │  ├─ authlib\              authlib-injector
    │  ├─ terracotta\<版本>\    陶瓦联机程序
-   │  └─ cache\                版本清单、加载器版本列表等缓存
+   │  └─ cache\                版本清单、加载器版本列表等缓存；skins\ 是外置账户的皮肤
    ├─ versions\<实例名>\       实例目录，也是启动时的 --gameDir
    ├─ libraries\               所有实例共享
    └─ assets\                  所有实例共享
@@ -151,6 +155,23 @@ CurseForge 的 `x-api-key` 只发给官方接口，不发给镜像。
 - 离线：UUID 按 Java `nameUUIDFromBytes` 规则由 `OfflinePlayer:<名字>` 计算
 - 外置登录：先做 API 地址指示（ALI）检测，再走 Yggdrasil 的 authenticate / refresh / validate。authlib-injector 从 BMCLAPI 或官方下载并校验，启动时加 `-javaagent` 和 `-Dauthlibinjector.yggdrasil.prebuilt`
 - 令牌目前明文存在 `accounts.json`，不保存密码
+
+### 皮肤
+
+- 外置登录（`auth/skin.rs`）：请求 `{API 根地址}/sessionserver/session/minecraft/profile/{无连字符 UUID}`，取 `properties` 里 `textures` 的值做 base64 解码，得到 `textures.SKIN.url`（`metadata.model = "slim"` 是纤细手臂）和 `textures.CAPE.url`。返回 204 / 404 视为没有皮肤
+- 角色信息缓存 10 分钟（`cache\skins\profile-<哈希>.json`），网络失败时用上次的结果。贴图按地址的 SHA-1 缓存成 `cache\skins\<sha1>.png`，只接受 http(s)、PNG 文件头、2 MB 以内。贴图以 data URL 交给前端，canvas 和 WebGL 不会遇到跨域
+- 离线账户和没有皮肤的外置账户显示默认皮肤（`src/skin.ts`）：沿用 Java 版 1.19.2 及以前的规则，`UUID.hashCode()` 为奇数是 Alex，偶数是 Steve。`hashCode` 等于把 32 位十六进制 UUID 切成 4 段 32 位整数全部异或。1.19.3 起游戏改成 9 种默认皮肤，这里没跟
+- 头像（`Avatar.vue`）：用 canvas 取皮肤 (8, 8) 处 8×8 的头部，再叠 (40, 8) 处的帽子层，`image-rendering: pixelated` 放大。64×32 的旧格式皮肤帽子层完全不透明时按游戏的做法当作没有帽子。高清皮肤按宽度等比例取。不传 account 时（联机房间里的其他玩家）仍是字母头像
+
+### 账户面板
+
+`AccountPanel.vue` 取代了原来居中的账户对话框。点侧边栏底部的头像打开，面板贴着侧边栏停在窗口底部，宽约 50%、高约 58%（有最小和最大值），`transform-origin` 按触发元素的位置计算，所以是从头像那里弹出来的。点面板外的遮罩或按 Esc 关闭（添加表单打开时 Esc 先回到列表）。
+
+- 左边是 3D 皮肤（`SkinViewer3D.vue`），右边是账户列表和添加表单。删除要连点两次
+- skinview3d 用 `defineAsyncComponent` 按需加载，three.js 不进首屏的包。面板展开动画结束后才创建 WebGL，关闭时组件卸载，先 `dispose()` 再 `renderer.forceContextLoss()` 释放上下文
+- 待机动画常驻，点一下模型挥手，“走两步”播放走路动画。界面动画关闭时不播放动作
+- 首页的账户卡片只弹出切换用的小列表（和实例选择一样），底部的“管理账户”打开面板。没有账户时直接打开面板
+- 外置账户的皮肤在 `refreshAccounts()` 时就开始拉取，面板里可以手动重新获取
 
 ## 模组加载器
 
@@ -240,6 +261,41 @@ Forge、NeoForge、Fabric、Quilt 四选一。OptiFine 不能搭配 Fabric、Qui
 - 背景：`AmbientBackground.vue` 用 CSS 和 SVG 绘制，动画只改 `transform`。离开首页时暂停，系统开启"减少动画"时不动
 - 窗口：无边框，自绘标题栏，背景用 Windows 11 的 Mica / Acrylic
 
+### 动效
+
+所有动效只改 `transform` 和 `opacity`，曲线统一用 `base.css` 里的 `--spring`、`--spring-soft`、`--ease-out`。
+
+- 页面切换：淡入加轻微上移和缩放（去掉了原来的 `filter: blur`）。页面里带 `.stagger` 的容器，前 12 个子元素在进入时错开 30 ms 入场，总时长控制在页面过渡的 0.55 秒以内，`--i` 可以手动指定序号
+- 列表：`TransitionGroup name="list"` 按 `--i` 错开进入，`.list-move` 让重排也走弹簧
+- 侧边栏：指示块弹簧移动，每次切换时内层重新挂载，播放一次“拉伸再回弹”；图标悬停上浮，选中时弹一下
+- 对话框：`GlassDialog` 记下最近一次 pointerdown 的位置（`motion.ts`），把 `transform-origin` 设到那里，从点击处缩放弹出
+- 启动按钮：图标区叠了三层（播放、进度环、运行中），按阶段切换。阶段由后端的 preparing 消息推出来：有补全文件或 Java 下载任务时是“下载文件”，消息是解压本地库或启动游戏进程时是“启动中”，其余是“准备中”。下载阶段进度环按任务进度画弧，其余阶段是一段旋转的弧。从准备进入运行时放一次光晕和 12 个粒子，运行中图标外有一圈缓慢的心跳
+- 任务卡片：进行中的进度条有流光（`.progress.flowing`），完成时勾号弹出并扩散一圈，只对 3 秒内完成的任务播放
+- 数字：`AnimatedNumber.vue` 用 requestAnimationFrame 在 0.45 秒内从旧值滚到新值，用在下载速度、百分比、内存、清理大小
+- 卡片：`.lift` 悬停抬起 2 px，叠一层只改透明度的高光
+
+关闭：设置 → 外观 → 界面动画（`settings.json` 的 `uiAnimation`，默认开）。关闭时 `<html>` 加 `.no-motion`，所有过渡和动画的时长改成 0.01 ms（Vue 的 Transition 仍能正常结束），JS 驱动的动效（数字滚动、粒子、皮肤动作）开始前检查 `motionOn()`。转圈、不确定进度条和启动按钮的进度环（`.keep-spin`）保留；内置背景的流动由“背景动画”单独控制，不受影响。系统开启“减少动画”时效果相同。
+
+## 清理
+
+`cleanup.rs`，命令 `scan_cleanup`（只统计）和 `run_cleanup(categories)`（删除）。前端只传类别 id，要删的文件每次都由后端重新算，不接受路径。
+
+| 类别 | 内容 | 默认 |
+| --- | --- | --- |
+| `cache` 启动器缓存 | `cache\` 下除 `skins\` 以外的全部内容（版本清单、`loader-meta\`、地图和整合包下载残留、OptiFine 安装器、安装器临时目录、已解压的联机组件安装包）；`runtime\`、`authlib\`、`libraries\`、`assets\` 和实例目录顶层及 mods / resourcepacks / shaderpacks 里的 `*.part`、`*.glass-tmp`；`libraries` 里 Forge / NeoForge 的 `*-installer.jar` | 勾选 |
+| `logs` 游戏日志 | `versions\<实例>\logs\` 下的所有文件。启动器自己不写日志文件 | 勾选 |
+| `crash` 崩溃报告 | `versions\<实例>\crash-reports\`，实例目录下的 `hs_err_pid*.log`、`replay_pid*.log` | 勾选 |
+| `components` 旧组件 | 没有实例需要的 Java 运行时；`terracotta\` 下当前版本和 `run\` 以外、名字以数字开头或是 `.old-` / `.install-` 的目录 | 不勾选 |
+
+Java 运行时的判断：
+
+- 遍历所有实例，用 `load_resolved` 取 `javaVersion`。组件目录存在就保留这个组件；不存在时（启动器会按主版本兜底，可能装在别的组件名下）保留这个主版本的所有运行时。没有组件名的按主版本保留
+- 全局设置和每个实例手动指定的 Java 如果在 `runtime\<组件>\` 里，保留该组件
+- 版本链读不全时退而看实例 JSON 和父版本 JSON 里的 `javaVersion`，还是读不到就整个跳过 Java 清理；实例设置读不出来也跳过。没装完的实例（没有版本 JSON）现在启动不了，不参与判断
+- 没有 `.glass-runtime.json` 标记的目录（下载到一半或别的程序放的）不删。删除时先删标记文件，标记删不掉就保留整个目录，这样即使中途有文件被占用，也不会留下一个“看起来完整”的运行时
+
+安全措施：不跟随符号链接和目录联接；单个文件删除失败（被占用、只读去掉属性后仍失败）只计数；有任务进行中时 `run_cleanup` 直接拒绝（下载中的 `.part`、安装器临时目录不能动），扫描结果里 `busy` 为 true 时前端禁用清理按钮；正在运行或正在启动的实例跳过日志和它目录里的 `.part`；有游戏在运行时不清理 Java；联机组件正在安装时不清理旧版本。勾选了旧组件时清理前会再弹一次确认，列出要删的组件。
+
 ## 已知限制
 
 - 只支持 Windows x64
@@ -252,3 +308,7 @@ Forge、NeoForge、Fabric、Quilt 四选一。OptiFine 不能搭配 Fabric、Qui
 - `mods.toml` 是极简解析，读不到名称时显示文件名
 - zip 只支持 deflate，用 LZMA 等压缩的地图会解压失败
 - 陶瓦不提供延迟数据，所以联机页不显示延迟
+- 默认皮肤只有 Steve 和 Alex 两种（游戏 1.19.3 起有 9 种）
+- 离线账户不能设置自定义皮肤
+- 3D 皮肤预览需要 WebGL，显卡驱动不支持时面板里只显示头像
+- 清理时日志文件如果被别的程序占用会跳过，只在结果里计数

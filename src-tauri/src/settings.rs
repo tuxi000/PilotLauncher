@@ -80,6 +80,9 @@ pub struct Settings {
     /// 内置背景是否缓慢流动（系统开启“减少动画”时前端会自动停止）
     #[serde(default = "default_true")]
     pub background_animation: bool,
+    /// 界面动画（页面切换、列表入场、启动按钮等非必要动效）；关闭后只保留加载指示等必要动画
+    #[serde(default = "default_true")]
+    pub ui_animation: bool,
     /// 启动游戏后启动器的行为：keep / minimize
     pub launcher_visibility: String,
 }
@@ -118,6 +121,7 @@ impl Default for Settings {
             background_image: None,
             background_palette: default_background_palette(),
             background_animation: true,
+            ui_animation: true,
             launcher_visibility: "keep".into(),
         }
     }

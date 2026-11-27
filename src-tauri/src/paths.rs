@@ -121,6 +121,10 @@ impl Paths {
     pub fn cache_dir(&self) -> PathBuf {
         self.data_dir.join("cache")
     }
+    /// 外置登录账户的皮肤 / 披风缓存：<数据目录>/cache/skins/
+    pub fn skins_dir(&self) -> PathBuf {
+        self.cache_dir().join("skins")
+    }
     /// 联机组件（Terracotta | 陶瓦联机）：<数据目录>/terracotta/<版本>/
     pub fn terracotta_dir(&self) -> PathBuf {
         self.data_dir.join("terracotta")

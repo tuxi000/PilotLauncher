@@ -11,6 +11,7 @@ import { api, errMsg, formatBytes, LOADER_LABEL, type TerracottaView } from '../
 import type { SelectOption } from '../selectOption'
 import { resolveIcon } from '../instanceIcons'
 import {
+  openAccountPanel,
   store,
   currentInstance,
   currentAccount,
@@ -94,7 +95,7 @@ function launchGame() {
     return
   }
   if (!currentAccount.value) {
-    store.accountDialog = true
+    openAccountPanel()
     return
   }
   if (gameRunning.value || gamePreparing.value) {

@@ -49,6 +49,8 @@ Windows only for now.
 **Accounts**
 - Offline accounts
 - authlib-injector accounts (LittleSkin and other skin sites)
+- Click the avatar at the bottom left to open the account panel with a 3D model of your skin you can drag around. authlib-injector accounts show the skin and cape from the skin site; offline accounts show the default Steve or Alex
+- Switch accounts right from the home page; avatars use your skin's head
 
 **Multiplayer**
 - Built-in [Terracotta](https://github.com/burningtnt/Terracotta): the host opens the world to LAN and shares an invite code, friends paste it to join
@@ -59,6 +61,11 @@ Windows only for now.
 - Three background color schemes, or use your own image
 - A live view of your PC's memory usage next to the game memory setting
 - Live game log, with hints for common crash causes
+- Interface animations can be turned off in Settings, and are reduced automatically when the system asks for reduced motion
+
+**Cleanup**
+- Scan and clean the launcher cache, game logs, crash reports and Java runtimes no instance uses any more, with the size of each category shown first
+- Only those files are removed; saves, mods, config, resource packs and screenshots are never touched
 
 **Portable**
 - Game files and launcher data live in a `.minecraft` folder next to the program by default, so you can move the whole folder anywhere

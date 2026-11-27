@@ -22,7 +22,8 @@ use crate::util::{read_json, sha1_hex, write_json_atomic};
 pub const OFFICIAL_ALL: &str =
     "https://launchermeta.mojang.com/v1/products/java-runtime/2ec0cc96c44e5a76b9c8b7c39df7210883d12871/all.json";
 const PLATFORM: &str = "windows-x64";
-const MARKER: &str = ".glass-runtime.json";
+/// 运行时安装完成后写入的标记文件（清理旧组件时据此判断目录是不是完整的官方运行时）
+pub const MARKER: &str = ".glass-runtime.json";
 
 #[derive(Deserialize, Clone, Debug)]
 struct RuntimeEntry {

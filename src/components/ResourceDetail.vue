@@ -359,7 +359,7 @@ const releaseLabel: Record<string, string> = { release: '正式版', beta: '测�
             <button v-if="filterOn && !isModpack" class="btn sm" @click="filterOn = false">显示全部版本</button>
           </div>
           <div v-else class="vlist">
-            <div v-for="v in shownVersions" :key="v.id" class="vrow glass-lite">
+            <div v-for="v in shownVersions" :key="v.id" class="vrow glass-lite lift">
               <div class="vinfo">
                 <div class="vname ellipsis" :title="v.name">
                   {{ v.name }}

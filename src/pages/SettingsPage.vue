@@ -1,12 +1,26 @@
 <script setup lang="ts">
-// 设置页：下载源、并发、内存、Java、外观、关于
-import { computed, onMounted, ref, watch } from 'vue'
+// 设置页：下载源、并发、内存、Java、外观、清理、关于
+import { computed, onMounted, reactive, ref, watch } from 'vue'
 import Icon from '../components/Icon.vue'
 import Segmented from '../components/Segmented.vue'
 import GlassSwitch from '../components/GlassSwitch.vue'
+import GlassCheck from '../components/GlassCheck.vue'
+import GlassDialog from '../components/GlassDialog.vue'
+import AnimatedNumber from '../components/AnimatedNumber.vue'
 import MemoryBar from '../components/MemoryBar.vue'
 import AmbientBackground from '../components/AmbientBackground.vue'
-import { api, errMsg, type BackgroundPalette, type JavaInfo, type MemoryStatus, type Settings } from '../api'
+import {
+  api,
+  errMsg,
+  formatBytes,
+  type BackgroundPalette,
+  type CleanupCategoryId,
+  type CleanupResult,
+  type CleanupScan,
+  type JavaInfo,
+  type MemoryStatus,
+  type Settings,
+} from '../api'
 import { store, saveSettings, toast, toastError } from '../store'
 
 const s = computed(() => store.settings)
@@ -102,6 +116,76 @@ async function applyJava(path: string | null) {
 function open(path?: string | null) {
   if (path) api.openPath(path).catch(toastError)
 }
+
+// ───── 清理 ─────
+const cleanScan = ref<CleanupScan | null>(null)
+const cleanScanning = ref(false)
+const cleaning = ref(false)
+const picked = reactive<Record<string, boolean>>({})
+const openDetail = ref<string | null>(null)
+const lastClean = ref<CleanupResult | null>(null)
+const confirmComponents = ref(false)
+
+async function scanClean() {
+  cleanScanning.value = true
+  try {
+    const r = await api.scanCleanup()
+    for (const c of r.categories) {
+      if (!(c.id in picked)) picked[c.id] = c.defaultSelected
+    }
+    cleanScan.value = r
+  } catch (e) {
+    toastError(e)
+  } finally {
+    cleanScanning.value = false
+  }
+}
+
+const pickedIds = computed<CleanupCategoryId[]>(() =>
+  (cleanScan.value?.categories ?? []).filter((c) => picked[c.id] && c.files > 0).map((c) => c.id),
+)
+const pickedBytes = computed(() =>
+  (cleanScan.value?.categories ?? []).filter((c) => picked[c.id]).reduce((sum, c) => sum + c.bytes, 0),
+)
+
+function togglePick(id: string, files: number) {
+  if (files > 0) picked[id] = !picked[id]
+}
+
+function toggleDetail(id: string) {
+  openDetail.value = openDetail.value === id ? null : id
+}
+
+function requestClean() {
+  if (!pickedIds.value.length) return
+  if (pickedIds.value.includes('components')) {
+    confirmComponents.value = true
+    return
+  }
+  doClean()
+}
+
+async function doClean() {
+  confirmComponents.value = false
+  const ids = pickedIds.value
+  if (!ids.length) return
+  cleaning.value = true
+  try {
+    const r = await api.runCleanup(ids)
+    lastClean.value = r
+    const base = `已清理 ${r.deletedFiles} 个文件，释放 ${formatBytes(r.freedBytes)}`
+    toast(r.failedFiles ? `${base}。另有 ${r.failedFiles} 个文件正在使用，已跳过` : base, 'success')
+    await scanClean()
+  } catch (e) {
+    toastError(e)
+  } finally {
+    cleaning.value = false
+  }
+}
+
+const componentsDetails = computed(
+  () => cleanScan.value?.categories.find((c) => c.id === 'components')?.details ?? [],
+)
 </script>
 
 <template>
@@ -110,7 +194,7 @@ function open(path?: string | null) {
       <h2>设置</h2>
     </header>
 
-    <div class="scroll">
+    <div class="scroll stagger">
       <!-- 下载 -->
       <div class="glass card group">
         <h3 class="section-title"><Icon name="download" /> 下载</h3>
@@ -372,6 +456,13 @@ function open(path?: string | null) {
           </div>
           <GlassSwitch :model-value="s.backgroundAnimation" @update:model-value="set('backgroundAnimation', $event)" />
         </div>
+        <div class="item">
+          <div class="label">
+            <div>界面动画</div>
+            <div class="faint">页面切换、列表入场、启动按钮、弹窗弹出等动效。关闭后只保留加载指示；系统开启“减少动画”时也会自动关闭</div>
+          </div>
+          <GlassSwitch :model-value="s.uiAnimation ?? true" @update:model-value="set('uiAnimation', $event)" />
+        </div>
         <div class="field">
           <label>自定义背景图（本地图片路径，优先于内置背景；留空使用内置背景）</label>
           <div class="row">
@@ -382,11 +473,90 @@ function open(path?: string | null) {
         </div>
       </div>
 
+      <!-- 清理 -->
+      <div class="glass card group">
+        <h3 class="section-title"><Icon name="sparkle" /> 清理</h3>
+        <div class="item">
+          <div class="label">
+            <div>清理游戏垃圾</div>
+            <div class="faint">缓存、日志、崩溃报告和不再使用的旧组件。存档、模组、配置、资源包、光影包和截图不会被删除</div>
+          </div>
+          <button class="btn sm" :disabled="cleanScanning || cleaning" @click="scanClean">
+            <span v-if="cleanScanning" class="spinner" />
+            <Icon v-else name="search" :size="15" />
+            {{ cleanScan ? '重新扫描' : '扫描' }}
+          </button>
+        </div>
+        <Transition name="expand">
+          <div v-if="cleanScan" class="clean">
+            <div
+              v-for="(c, i) in cleanScan.categories"
+              :key="c.id"
+              class="cl-row glass-lite"
+              :class="{ on: picked[c.id] && c.files > 0, none: c.files === 0 }"
+              :style="{ '--i': i }"
+            >
+              <GlassCheck v-model="picked[c.id]" :disabled="c.files === 0" />
+              <div class="cl-text" @click="togglePick(c.id, c.files)">
+                <div class="cl-name">
+                  {{ c.label }}
+                  <span v-if="!c.defaultSelected" class="badge warning">谨慎</span>
+                </div>
+                <div class="faint cl-desc">{{ c.description }}</div>
+                <div v-for="n in c.notes" :key="n" class="cl-note"><Icon name="info" :size="13" /> {{ n }}</div>
+              </div>
+              <div class="cl-size">
+                <b class="mono"><AnimatedNumber :value="c.bytes" :format="formatBytes" /></b>
+                <span class="faint">{{ c.files ? `${c.files} 个文件` : '没有可清理的' }}</span>
+              </div>
+              <button
+                class="btn ghost sm icon cl-more"
+                :class="{ flip: openDetail === c.id }"
+                :disabled="!c.details.length"
+                title="查看明细"
+                @click="toggleDetail(c.id)"
+              >
+                <Icon name="chevronDown" :size="16" />
+              </button>
+              <Transition name="expand">
+                <div v-if="openDetail === c.id && c.details.length" class="cl-details">
+                  <div v-for="(d, k) in c.details" :key="`${k}-${d.label}`" class="cl-d">
+                    <span class="ellipsis" :title="d.label">{{ d.label }}</span>
+                    <span class="faint mono">{{ d.files }} 个 · {{ formatBytes(d.bytes) }}</span>
+                  </div>
+                </div>
+              </Transition>
+            </div>
+            <div class="cl-foot">
+              <span v-if="cleanScan.busy" class="cl-warn"><Icon name="alert" :size="14" /> 有下载或安装任务正在进行，结束后才能清理</span>
+              <Transition name="swap" mode="out-in">
+                <span v-if="lastClean && !cleanScan.busy" :key="lastClean.freedBytes" class="freed">
+                  <span class="freed-ico"><Icon name="check" :size="13" :stroke="2.8" /></span>
+                  上次释放了 <b class="mono"><AnimatedNumber :value="lastClean.freedBytes" :format="formatBytes" :duration="800" /></b>
+                  <template v-if="lastClean.failedFiles">，{{ lastClean.failedFiles }} 个文件正在使用已跳过</template>
+                </span>
+              </Transition>
+              <span class="spacer" />
+              <span class="faint cl-sum">已选 <b class="mono"><AnimatedNumber :value="pickedBytes" :format="formatBytes" /></b></span>
+              <button
+                class="btn primary sm"
+                :disabled="cleaning || cleanScanning || cleanScan.busy || !pickedIds.length"
+                @click="requestClean"
+              >
+                <span v-if="cleaning" class="spinner" />
+                <Icon v-else name="trash" :size="15" />
+                清理
+              </button>
+            </div>
+          </div>
+        </Transition>
+      </div>
+
       <!-- 关于 -->
       <div class="glass card group">
         <h3 class="section-title"><Icon name="info" /> 关于</h3>
         <div class="about">
-          <div><span class="faint">版本</span> PilotLauncher {{ sys?.version }}（第四阶段：原版风格图标、愚人节版本、简约背景配色；内置陶瓦联机）</div>
+          <div><span class="faint">版本</span> PilotLauncher v{{ sys?.version }}</div>
           <div class="row">
             <span class="faint">数据目录</span>
             <span class="mono ellipsis sel">{{ sys?.dataDir }}</span>
@@ -419,6 +589,22 @@ function open(path?: string | null) {
         </div>
       </div>
     </div>
+
+    <GlassDialog :open="confirmComponents" title="清理旧组件" :width="480" @close="confirmComponents = false">
+      <p class="muted confirm-text">
+        下面这些组件目前没有实例在用，删除后如果以后需要，启动游戏或打开联机时会重新下载：
+      </p>
+      <div class="confirm-list">
+        <div v-for="(d, k) in componentsDetails" :key="`${k}-${d.label}`" class="cl-d">
+          <span class="ellipsis">{{ d.label }}</span>
+          <span class="faint mono">{{ formatBytes(d.bytes) }}</span>
+        </div>
+      </div>
+      <template #footer>
+        <button class="btn" @click="confirmComponents = false">取消</button>
+        <button class="btn danger" :disabled="cleaning" @click="doClean">清理</button>
+      </template>
+    </GlassDialog>
   </section>
 </template>
 
@@ -616,5 +802,135 @@ function open(path?: string | null) {
 }
 .swatch.active .sw-check {
   background: var(--accent);
+}
+/* 清理 */
+.clean {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.cl-row {
+  --radius: 15px;
+  display: grid;
+  grid-template-columns: auto 1fr auto auto;
+  align-items: center;
+  gap: 4px 12px;
+  padding: 10px 8px 10px 14px;
+  transition: box-shadow 0.2s ease, background 0.2s ease, opacity 0.2s ease;
+  animation: rise-in 0.36s var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+.cl-row.on {
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--accent) 70%, transparent), inset 0 1px 0 var(--hl-top);
+}
+.cl-row.none {
+  opacity: 0.6;
+}
+.cl-text {
+  min-width: 0;
+  cursor: pointer;
+}
+.cl-row.none .cl-text {
+  cursor: default;
+}
+.cl-name {
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.cl-desc {
+  font-size: 12px;
+  margin-top: 2px;
+  line-height: 1.5;
+}
+.cl-note {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  margin-top: 4px;
+  color: color-mix(in srgb, var(--warning) 75%, var(--text));
+}
+.cl-size {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  font-size: 12px;
+  white-space: nowrap;
+}
+.cl-size b {
+  font-size: 14px;
+  color: var(--text);
+}
+.cl-more :deep(.icon) {
+  transition: transform 0.45s var(--spring);
+}
+.cl-more.flip :deep(.icon) {
+  transform: rotate(180deg);
+}
+.cl-details {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 6px 6px 2px 30px;
+  padding-top: 8px;
+  border-top: 1px solid var(--divider);
+}
+.cl-d {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  min-width: 0;
+}
+.cl-foot {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 2px 2px 0;
+  font-size: 12.5px;
+}
+.cl-warn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: color-mix(in srgb, var(--warning) 75%, var(--text));
+}
+.freed {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.freed b {
+  color: var(--success);
+}
+.freed-ico {
+  width: 20px;
+  height: 20px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--success);
+  box-shadow: 0 3px 10px -3px var(--success);
+  animation: pop-in 0.55s var(--spring) both;
+}
+.cl-sum b {
+  color: var(--text);
+}
+.confirm-text {
+  margin: 0 0 10px;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.confirm-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 40vh;
+  overflow: auto;
 }
 </style>

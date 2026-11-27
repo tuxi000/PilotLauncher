@@ -47,6 +47,8 @@ PilotLauncher 是一个用 Tauri（Rust + Vue）写的 Minecraft 启动器，界
 **账户**
 - 离线登录
 - 外置登录（authlib-injector），可以用 LittleSkin 等皮肤站账户
+- 点左下角的头像打开账户面板，能拖着转动皮肤的 3D 模型。外置登录显示皮肤站上的皮肤和披风，离线账户显示默认的 Steve 或 Alex
+- 首页的账户卡片可以直接切换账户，头像用的是皮肤的头部
 
 **联机**
 - 内置[陶瓦联机](https://github.com/burningtnt/Terracotta)：房主开局域网，把邀请码发给朋友就能加入
@@ -57,6 +59,11 @@ PilotLauncher 是一个用 Tauri（Rust + Vue）写的 Minecraft 启动器，界
 - 三套背景配色可选，也可以换成自己的图片
 - 游戏内存设置旁边实时显示整台电脑的内存占用
 - 游戏日志实时查看，崩溃时给出常见原因的提示
+- 界面动画可以在设置里关掉，系统开启“减少动画”时也会自动关掉
+
+**清理**
+- 设置里可以扫描并清理启动器缓存、游戏日志、崩溃报告和没有实例在用的旧 Java，清理前列出每一类占多少空间
+- 只删这几类文件，存档、模组、配置、资源包和截图不会动
 
 **便携**
 - 游戏文件和启动器数据默认都放在程序旁边的 `.minecraft` 文件夹里，整个文件夹拷走就能用
@@ -154,7 +161,7 @@ scripts\build.bat
 
 源代码以 [MIT 许可证](LICENSE) 发布。
 
-`src/assets/icons/` 里的方块图标是用 Minecraft 原版贴图渲染的，版权归 Mojang Studios 所有，不适用 MIT 许可。其他第三方素材、运行时下载的程序和使用的在线服务见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
+`src/assets/icons/` 里的方块图标是用 Minecraft 原版贴图渲染的，`src/assets/skins/` 里是 Minecraft 的默认皮肤，版权都归 Mojang Studios 所有，不适用 MIT 许可。其他第三方素材、运行时下载的程序和使用的在线服务见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。
 
 本项目不是 Minecraft 官方产品，未经 Mojang 或 Microsoft 批准，也与它们没有关联。
 

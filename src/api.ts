@@ -32,6 +32,8 @@ export interface Settings {
   backgroundPalette: BackgroundPalette
   /** 内置背景是否缓慢流动（默认 true；系统开启“减少动画”时自动停止） */
   backgroundAnimation: boolean
+  /** 界面动画（默认 true）：关闭后去掉页面切换、列表入场、启动按钮等非必要动效，只保留加载指示 */
+  uiAnimation: boolean
   launcherVisibility: 'keep' | 'minimize'
 }
 
@@ -155,6 +157,57 @@ export interface YggLoginResult {
   status: 'ok' | 'choose_profile'
   account: AccountView | null
   profiles: GameProfile[]
+}
+
+/** 账户皮肤：外置登录账户从认证服务器获取（data URL）；为空时显示默认皮肤（见 skin.ts） */
+export interface SkinView {
+  skin: string | null
+  cape: string | null
+  slim: boolean
+  source: 'yggdrasil' | 'default'
+  error: string | null
+}
+
+// ───── 清理 ─────
+
+export type CleanupCategoryId = 'cache' | 'logs' | 'crash' | 'components'
+
+export interface CleanupDetail {
+  label: string
+  files: number
+  bytes: number
+}
+
+export interface CleanupCategory {
+  id: CleanupCategoryId
+  label: string
+  description: string
+  files: number
+  bytes: number
+  defaultSelected: boolean
+  details: CleanupDetail[]
+  notes: string[]
+}
+
+export interface CleanupScan {
+  categories: CleanupCategory[]
+  totalBytes: number
+  /** 有下载 / 安装任务进行中，这时不能清理 */
+  busy: boolean
+}
+
+export interface CleanupOutcome {
+  id: CleanupCategoryId
+  files: number
+  bytes: number
+  failed: number
+}
+
+export interface CleanupResult {
+  categories: CleanupOutcome[]
+  freedBytes: number
+  deletedFiles: number
+  failedFiles: number
 }
 
 export interface ServerInfo {
@@ -534,6 +587,11 @@ export const api = {
     invoke<YggLoginResult>('add_yggdrasil_account', { server, username, password, profileId: profileId ?? null }),
   removeAccount: (id: string) => invoke<AccountList>('remove_account', { id }),
   selectAccount: (id: string) => invoke<Settings>('select_account', { id }),
+  accountSkin: (id: string, force = false) => invoke<SkinView>('get_account_skin', { id, force }),
+
+  // 清理
+  scanCleanup: () => invoke<CleanupScan>('scan_cleanup'),
+  runCleanup: (categories: CleanupCategoryId[]) => invoke<CleanupResult>('run_cleanup', { categories }),
 
   listJava: () => invoke<JavaInfo[]>('list_java'),
   inspectJava: (path: string) => invoke<JavaInfo>('inspect_java', { path }),

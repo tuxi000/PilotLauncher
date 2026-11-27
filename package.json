@@ -1,7 +1,7 @@
 {
   "name": "pilot-launcher",
   "private": true,
-  "version": "0.1.0",
+  "version": "0.2.0",
   "license": "MIT",
   "type": "module",
   "description": "PilotLauncher - 液态玻璃风格的 Minecraft 启动器（Tauri 2 + Vue 3）",
@@ -17,6 +17,7 @@
     "@tauri-apps/plugin-dialog": "^2.2.0",
     "dompurify": "^3.2.0",
     "marked": "^15.0.0",
+    "skinview3d": "^3.4.2",
     "vue": "^3.5.13"
   },
   "devDependencies": {

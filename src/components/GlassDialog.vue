@@ -1,7 +1,8 @@
 <script setup lang="ts">
-// 通用玻璃弹窗：弹性缩放进入，点击遮罩或 Esc 关闭
-import { onMounted, onUnmounted } from 'vue'
+// 通用玻璃弹窗：从触发位置（最近一次点击处）弹性缩放展开，点击遮罩或 Esc 关闭
+import { onMounted, onUnmounted, ref, watch } from 'vue'
 import Icon from './Icon.vue'
+import { recentPointer } from '../motion'
 
 const props = withDefaults(defineProps<{ open: boolean; title?: string; width?: number; closable?: boolean }>(), {
   title: '',
@@ -9,6 +10,24 @@ const props = withDefaults(defineProps<{ open: boolean; title?: string; width?: 
   closable: true,
 })
 const emit = defineEmits<{ (e: 'close'): void }>()
+
+/** 缩放原点：对话框居中显示，原点相对对话框中心偏移到点击位置 */
+const origin = ref('50% 50%')
+watch(
+  () => props.open,
+  (o) => {
+    if (!o) return
+    const p = recentPointer()
+    if (!p) {
+      origin.value = '50% 50%'
+      return
+    }
+    const dx = Math.round(p.x - window.innerWidth / 2)
+    const dy = Math.round(p.y - window.innerHeight / 2)
+    origin.value = `calc(50% + ${dx}px) calc(50% + ${dy}px)`
+  },
+  { immediate: true },
+)
 
 function onKey(e: KeyboardEvent) {
   if (e.key === 'Escape' && props.open && props.closable) emit('close')
@@ -21,7 +40,12 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   <Teleport to="body">
     <Transition name="dialog">
       <div v-if="open" class="scrim" @mousedown.self="closable && emit('close')">
-        <div class="dialog glass glass-strong" :style="{ width: `${width}px` }" v-refract="{ scale: 30 }" v-light>
+        <div
+          class="dialog glass glass-strong"
+          :style="{ width: `${width}px`, transformOrigin: origin }"
+          v-refract="{ scale: 30 }"
+          v-light
+        >
           <header v-if="title || closable" class="head">
             <h3>{{ title }}</h3>
             <span class="spacer" />
@@ -80,10 +104,10 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
 }
 
 .dialog-enter-active {
-  transition: opacity 0.25s ease;
+  transition: opacity 0.22s ease;
 }
 .dialog-enter-active .dialog {
-  transition: transform 0.6s var(--spring), opacity 0.25s ease;
+  transition: transform 0.6s var(--spring-soft), opacity 0.2s ease;
 }
 .dialog-leave-active {
   transition: opacity 0.18s ease;
@@ -96,11 +120,11 @@ onUnmounted(() => window.removeEventListener('keydown', onKey))
   opacity: 0;
 }
 .dialog-enter-from .dialog {
-  transform: scale(0.86) translateY(16px);
+  transform: scale(0.72);
   opacity: 0;
 }
 .dialog-leave-to .dialog {
-  transform: scale(0.96);
+  transform: scale(0.94);
   opacity: 0;
 }
 </style>

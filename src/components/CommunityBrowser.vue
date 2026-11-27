@@ -241,11 +241,12 @@ function importLocal() {
         <span>{{ error }}</span>
         <button class="btn sm" @click="search(true)">重试</button>
       </div>
-      <TransitionGroup name="list" tag="div" class="grid">
+      <TransitionGroup name="list" tag="div" class="grid stagger">
         <article
-          v-for="h in hits"
+          v-for="(h, idx) in hits"
           :key="h.platform + h.id"
-          class="rc glass-lite"
+          class="rc glass-lite lift"
+          :style="{ '--i': idx % 20 }"
           role="button"
           tabindex="0"
           @click="selected = h"

@@ -8,8 +8,10 @@ use serde::Serialize;
 use tauri::State;
 
 use crate::auth::offline::{offline_uuid, validate_offline_name};
+use crate::auth::skin::{self, SkinView};
 use crate::auth::store::{Account, AccountKind, AccountView};
 use crate::auth::yggdrasil::{self, GameProfile, ServerInfo};
+use crate::cleanup::{self, CleanCtx, CleanupResult, CleanupScan};
 use crate::community::local::LocalResource;
 use crate::community::modpack::{ArchiveInfo, MissingFile};
 use crate::community::{
@@ -361,6 +363,17 @@ pub async fn select_account(core: AppState<'_>, id: String) -> CmdResult<Setting
     core.update_settings(|s| s.selected_account = Some(id)).cmd()
 }
 
+/// 账户皮肤（外置登录从认证服务器获取并缓存；离线账户返回空，前端显示默认皮肤）
+#[tauri::command]
+pub async fn get_account_skin(core: AppState<'_>, id: String, force: Option<bool>) -> CmdResult<SkinView> {
+    let account = core.accounts.lock().await.get(&id).cloned();
+    let Some(account) = account else {
+        return Err("账户不存在".into());
+    };
+    let core = core.inner().clone();
+    Ok(skin::account_skin(&core, &account, force.unwrap_or(false)).await)
+}
+
 // ───────────────────────── Java ─────────────────────────
 
 #[tauri::command]
@@ -397,6 +410,27 @@ pub async fn get_game_log(core: AppState<'_>, name: String) -> CmdResult<Vec<Str
 #[tauri::command]
 pub async fn running_games(core: AppState<'_>) -> CmdResult<Vec<String>> {
     Ok(core.running_instances())
+}
+
+// ───────────────────────── 清理 ─────────────────────────
+
+/// 扫描可清理的内容（只统计，不删除）
+#[tauri::command]
+pub async fn scan_cleanup(core: AppState<'_>) -> CmdResult<CleanupScan> {
+    let ctx = CleanCtx::from_core(&core);
+    tokio::task::spawn_blocking(move || cleanup::scan(&ctx))
+        .await
+        .map_err(|e| e.to_string())
+}
+
+/// 清理所选类别（cache / logs / crash / components）。目标由后端重新计算，失败的文件只计数
+#[tauri::command]
+pub async fn run_cleanup(core: AppState<'_>, categories: Vec<String>) -> CmdResult<CleanupResult> {
+    let ctx = CleanCtx::from_core(&core);
+    tokio::task::spawn_blocking(move || cleanup::run(&ctx, &categories))
+        .await
+        .map_err(|e| e.to_string())?
+        .cmd()
 }
 
 // ───────────────────────── 杂项 ─────────────────────────

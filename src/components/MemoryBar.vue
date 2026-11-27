@@ -1,6 +1,7 @@
 <script setup lang="ts">
 // 内存条：像 PCL 一样实时显示整台电脑的内存占用，并标出分配给游戏的部分（每秒刷新）
 import { computed, onActivated, onBeforeUnmount, onDeactivated, onMounted, ref } from 'vue'
+import AnimatedNumber from './AnimatedNumber.vue'
 import { api, type MemoryStatus } from '../api'
 
 const props = defineProps<{ allocatedMb: number }>()
@@ -33,6 +34,7 @@ onDeactivated(stop)
 onBeforeUnmount(stop)
 
 const gb = (mb: number) => (mb / 1024).toFixed(1)
+const gbText = (mb: number) => `${gb(mb)} GB`
 const total = computed(() => Math.max(1, status.value?.totalMb ?? 1))
 const used = computed(() => Math.max(0, total.value - (status.value?.availableMb ?? 0)))
 const avail = computed(() => status.value?.availableMb ?? 0)
@@ -52,9 +54,9 @@ const pct = (mb: number) => `${Math.min(100, (mb / total.value) * 100).toFixed(2
       <span v-if="over > 0" class="seg over" :style="{ width: pct(Math.min(over, used)), marginLeft: `-${pct(Math.min(over, used))}` }" />
     </div>
     <div class="legend">
-      <span><i class="dot used" />已使用 <b class="mono">{{ gb(used) }} GB</b></span>
-      <span><i class="dot game" />游戏分配 <b class="mono">{{ gb(game) }} GB</b></span>
-      <span><i class="dot free" />剩余 <b class="mono">{{ gb(freeAfter) }} GB</b></span>
+      <span><i class="dot used" />已使用 <b class="mono"><AnimatedNumber :value="used" :format="gbText" :duration="600" /></b></span>
+      <span><i class="dot game" />游戏分配 <b class="mono"><AnimatedNumber :value="game" :format="gbText" /></b></span>
+      <span><i class="dot free" />剩余 <b class="mono"><AnimatedNumber :value="freeAfter" :format="gbText" :duration="600" /></b></span>
       <span class="spacer" />
       <span class="faint">总内存 <span class="mono">{{ gb(total) }} GB</span></span>
     </div>

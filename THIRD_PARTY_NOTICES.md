@@ -5,7 +5,7 @@ PilotLauncher 的**源代码**以 [MIT 许可证](LICENSE) 发布。以下素材
 > NOT AN OFFICIAL MINECRAFT PRODUCT. NOT APPROVED BY OR ASSOCIATED WITH MOJANG OR MICROSOFT.
 > 本项目不是 Minecraft 官方产品，未经 Mojang 或 Microsoft 批准，也与它们没有关联。
 
-## 仓库中包含的素材（`src/assets/icons/`）
+## 仓库中包含的素材（`src/assets/icons/`、`src/assets/skins/`）
 
 | 文件 | 内容 | 版权 / 许可 |
 | --- | --- | --- |
@@ -13,6 +13,7 @@ PilotLauncher 的**源代码**以 [MIT 许可证](LICENSE) 发布。以下素材
 | `fabric.png` | FabricMC 的项目图标 | 归 FabricMC 项目所有 |
 | `neoforge.png` | NeoForged 的项目 logo（去掉底板） | 归 NeoForged 项目所有 |
 | `quilt.png` | QuiltMC 官方 logo（[QuiltMC/art](https://github.com/QuiltMC/art)） | CC0 1.0 |
+| `skins/steve.png`、`skins/alex.png` | Minecraft 默认皮肤贴图（64×64），用于没有自定义皮肤的账户的头像和 3D 预览。取自 [InventivetalentDev/minecraft-assets](https://github.com/InventivetalentDev/minecraft-assets)（1.21.4 分支，`textures/entity/player/wide/steve.png` 与 `slim/alex.png`），未做修改 | © Mojang Studios / Microsoft，**不适用 MIT 许可**。如权利人要求，将立即移除 |
 
 “Minecraft” 是 Mojang Synergies AB 的商标；Forge、NeoForge、Fabric、Quilt、OptiFine 等名称归各自项目所有，在本项目中仅用于说明兼容性。
 
@@ -37,3 +38,5 @@ PilotLauncher 的**源代码**以 [MIT 许可证](LICENSE) 发布。以下素材
 ## 依赖库
 
 前端（npm）与后端（Rust crates）依赖各自遵循其许可证，详见 `package-lock.json` 与 `src-tauri/Cargo.lock` 中列出的包。
+
+账户面板的 3D 皮肤预览使用 [skinview3d](https://github.com/bs-community/skinview3d)（MIT，© Haowei Wen 等贡献者），它基于 [three.js](https://github.com/mrdoob/three.js)（MIT）。
